@@ -11,6 +11,7 @@ export type OnboardingStackParamList = {
 
 export type MainTabsParamList = {
   Home: undefined;
+  Calendar: undefined;
   Transactions: undefined;
   Budgets: undefined;
   CanI: undefined;

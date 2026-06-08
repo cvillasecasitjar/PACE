@@ -3,15 +3,18 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import type { CategoryId } from "@pace/shared";
+import type { CategoryId, PlanType } from "@pace/shared";
 import {
   BankApi,
   BudgetsApi,
   DashboardApi,
   DecisionApi,
+  PlansApi,
   TransactionsApi,
   UserApi,
+  type CreatePlanInput,
   type TxFilters,
+  type UpdatePlanInput,
 } from "./endpoints";
 import { useAuth } from "../store/auth";
 
@@ -21,6 +24,8 @@ export const qk = {
   budgets: ["budgets"] as const,
   budgetSuggestions: ["budgets", "suggestions"] as const,
   connections: ["connections"] as const,
+  plans: ["plans"] as const,
+  planSuggestion: (type: PlanType) => ["plans", "suggest", type] as const,
 };
 
 /** Invalidate everything that depends on transaction/balance state. */
@@ -94,6 +99,57 @@ export function useSync() {
 
 export function useDecision() {
   return useMutation({ mutationFn: (amount: number) => DecisionApi.evaluate(amount) });
+}
+
+/* -------------------------------- Plans ---------------------------------- */
+
+export function usePlans(upcomingOnly = false) {
+  return useQuery({
+    queryKey: [...qk.plans, upcomingOnly] as const,
+    queryFn: () => PlansApi.list(upcomingOnly),
+  });
+}
+
+export function usePlanSuggestion(type: PlanType) {
+  return useQuery({
+    queryKey: qk.planSuggestion(type),
+    queryFn: () => PlansApi.suggest(type),
+  });
+}
+
+/** Plans change the dashboard's "fun money" figure, so invalidate both. */
+function useInvalidatePlans() {
+  const qc = useQueryClient();
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: qk.plans }),
+      qc.invalidateQueries({ queryKey: qk.dashboard }),
+    ]);
+}
+
+export function useCreatePlan() {
+  const invalidate = useInvalidatePlans();
+  return useMutation({
+    mutationFn: (input: CreatePlanInput) => PlansApi.create(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdatePlan() {
+  const invalidate = useInvalidatePlans();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: UpdatePlanInput }) =>
+      PlansApi.update(id, patch),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeletePlan() {
+  const invalidate = useInvalidatePlans();
+  return useMutation({
+    mutationFn: (id: string) => PlansApi.remove(id),
+    onSuccess: invalidate,
+  });
 }
 
 export function useUpdateUser() {

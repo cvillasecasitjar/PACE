@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../theme";
 import { useT } from "../i18n";
 import { DashboardScreen } from "../screens/DashboardScreen";
+import { CalendarScreen } from "../screens/CalendarScreen";
 import { TransactionsScreen } from "../screens/TransactionsScreen";
 import { BudgetsScreen } from "../screens/BudgetsScreen";
 import { CanIScreen } from "../screens/CanIScreen";
@@ -14,6 +15,7 @@ const Tab = createBottomTabNavigator<MainTabsParamList>();
 
 const ICONS: Record<keyof MainTabsParamList, string> = {
   Home: "🏠",
+  Calendar: "📅",
   Transactions: "📃",
   CanI: "💸",
   Budgets: "📊",
@@ -48,6 +50,11 @@ export function MainTabs() {
         name="Home"
         component={DashboardScreen}
         options={{ tabBarLabel: tr("tab.home") }}
+      />
+      <Tab.Screen
+        name="Calendar"
+        component={CalendarScreen}
+        options={{ tabBarLabel: tr("tab.calendar") }}
       />
       <Tab.Screen
         name="Transactions"

@@ -1,4 +1,5 @@
 import type { CategoryId } from "./categories";
+import type { PlanType, PlanStatus } from "./plans";
 
 /** Supported Open Banking providers behind the abstraction layer. */
 export type BankProviderId = "mock" | "tink" | "plaid";
@@ -62,6 +63,34 @@ export interface Budget {
   period: string;
 }
 
+/** ----- Planned events ("Plans" / Calendar) ----- */
+
+export interface PlannedEvent {
+  id: string;
+  userId: string;
+  /** Free-text label, e.g. "Cena con Marta". Defaults to the type label. */
+  title: string;
+  type: PlanType;
+  /** ISO date of the plan (start day). */
+  date: string;
+  /** Optional ISO end date for multi-day plans (e.g. a weekend). */
+  endDate: string | null;
+  /** What the user expects to spend. */
+  estimatedAmount: number;
+  /** What they actually spent, once marked as done (drives learning). */
+  actualAmount: number | null;
+  status: PlanStatus;
+  createdAt: string;
+}
+
+/** A learned cost estimate for a plan type, with where it came from. */
+export interface PlanSuggestion {
+  type: PlanType;
+  suggested: number;
+  /** Transparency for the UI: did we learn this or fall back to a default? */
+  basis: "history" | "category" | "default";
+}
+
 /** ----- Decision engine ("Can I afford this?") ----- */
 
 export type DecisionVerdict = "yes" | "caution" | "no";
@@ -82,7 +111,9 @@ export interface DecisionResult {
   upcomingCommitments: number;
   /** The user's configured safety buffer. */
   safetyBuffer: number;
-  /** balance − commitments − buffer (the true discretionary amount). */
+  /** Upcoming planned events (Calendar) still to come this month. */
+  plannedThisMonth: number;
+  /** balance − commitments − planned − buffer (the true discretionary amount). */
   discretionaryAvailable: number;
   /** What would remain after the hypothetical purchase. */
   remainingAfter: number;
@@ -118,6 +149,8 @@ export interface DashboardSummary {
   spentLast7Days: number;
   spentThisMonth: number;
   upcomingCommitments: number;
+  /** Sum of upcoming planned events (Calendar) for the rest of the month. */
+  plannedThisMonth: number;
   safetyBuffer: number;
   recentTransactions: Transaction[];
   /** Daily spend totals for the current week (Mon→Sun) for the mini chart. */

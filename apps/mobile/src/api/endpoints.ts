@@ -6,6 +6,10 @@ import type {
   DashboardSummary,
   DecisionResult,
   Locale,
+  PlannedEvent,
+  PlanStatus,
+  PlanSuggestion,
+  PlanType,
   Transaction,
   User,
 } from "@pace/shared";
@@ -112,5 +116,51 @@ export const DecisionApi = {
   async evaluate(amount: number): Promise<DecisionResult> {
     const { data } = await api.post<DecisionResult>("/decision", { amount });
     return data;
+  },
+};
+
+export interface CreatePlanInput {
+  title?: string;
+  type: PlanType;
+  /** ISO date string (start day). */
+  date: string;
+  /** Optional ISO end date for multi-day plans. */
+  endDate?: string | null;
+  estimatedAmount: number;
+}
+
+export interface UpdatePlanInput {
+  title?: string;
+  type?: PlanType;
+  date?: string;
+  endDate?: string | null;
+  estimatedAmount?: number;
+  actualAmount?: number | null;
+  status?: PlanStatus;
+}
+
+export const PlansApi = {
+  async list(upcomingOnly = false): Promise<PlannedEvent[]> {
+    const { data } = await api.get<PlannedEvent[]>("/plans", {
+      params: upcomingOnly ? { upcoming: "true" } : {},
+    });
+    return data;
+  },
+  async suggest(type: PlanType): Promise<PlanSuggestion> {
+    const { data } = await api.get<PlanSuggestion>("/plans/suggest", {
+      params: { type },
+    });
+    return data;
+  },
+  async create(input: CreatePlanInput): Promise<PlannedEvent> {
+    const { data } = await api.post<PlannedEvent>("/plans", input);
+    return data;
+  },
+  async update(id: string, patch: UpdatePlanInput): Promise<PlannedEvent> {
+    const { data } = await api.patch<PlannedEvent>(`/plans/${id}`, patch);
+    return data;
+  },
+  async remove(id: string): Promise<void> {
+    await api.delete(`/plans/${id}`);
   },
 };

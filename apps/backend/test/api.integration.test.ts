@@ -63,10 +63,14 @@ describe("Bank connection → dashboard → decision flow", () => {
   it("now shows a populated dashboard", async () => {
     const res = await request(app).get("/api/dashboard").set(auth());
     expect(res.status).toBe(200);
-    expect(res.body.currentBalance).toBeGreaterThan(0);
+    // "Populated" = it has real data. We don't assert a positive balance: the
+    // mock generates a random student-like history, so depending on the day of
+    // the month the balance can legitimately be in the red.
+    expect(typeof res.body.currentBalance).toBe("number");
     expect(res.body.recentTransactions.length).toBeGreaterThan(0);
     expect(["green", "yellow", "red"]).toContain(res.body.status);
     expect(res.body.weeklySpend).toHaveLength(7);
+    expect(typeof res.body.plannedThisMonth).toBe("number");
   });
 
   it("answers the decision engine with a personalised verdict", async () => {

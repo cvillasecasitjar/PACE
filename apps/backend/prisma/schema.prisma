@@ -30,6 +30,7 @@ model User {
   transactions Transaction[]
   budgets      Budget[]
   auditLogs    AuditLog[]
+  plannedEvents PlannedEvent[]
 }
 
 model BankConnection {
@@ -86,6 +87,26 @@ model Budget {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, category])
+}
+
+// Upcoming plans the user knows about (a dinner, a trip, a concert…). Each has
+// an estimated cost that feeds the dashboard and the decision engine, and an
+// optional actual cost (once done) used to learn typical costs per plan type.
+model PlannedEvent {
+  id              String    @id @default(uuid())
+  userId          String
+  title           String
+  type            String    @default("other") // PlanType id (see @pace/shared)
+  date            DateTime  // start day of the plan
+  endDate         DateTime? // optional last day for multi-day plans (e.g. a weekend)
+  estimatedAmount Float
+  actualAmount    Float?
+  status          String    @default("planned") // planned | done | skipped
+  createdAt       DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
 }
 
 // Learned mapping from a merchant/description keyword to a category, built up

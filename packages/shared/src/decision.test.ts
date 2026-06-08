@@ -89,6 +89,27 @@ describe("evaluateDecision — Level 1 (income-cycle aware)", () => {
   });
 });
 
+describe("evaluateDecision — planned events (Calendar)", () => {
+  it("subtracts upcoming planned spend from what's available", () => {
+    // discretionary = 500 - 100 - 100(planned) - 100(buffer) = 200
+    const r = evaluateDecision({ ...base, amount: 0, plannedUpcoming: 100 });
+    expect(r.plannedThisMonth).toBe(100);
+    expect(r.discretionaryAvailable).toBe(200);
+  });
+
+  it("can flip a YES into a NO once plans are accounted for", () => {
+    // Without plans: discretionary 300, spending 250 → YES.
+    expect(evaluateDecision({ ...base, amount: 250 }).verdict).toBe("yes");
+    // With 200 of plans: discretionary 100, spending 250 → NO.
+    const r = evaluateDecision({ ...base, amount: 250, plannedUpcoming: 200 });
+    expect(r.verdict).toBe("no");
+  });
+
+  it("defaults planned to 0 when not provided", () => {
+    expect(evaluateDecision({ ...base, amount: 0 }).plannedThisMonth).toBe(0);
+  });
+});
+
 describe("statusFor — dashboard traffic light", () => {
   it("is red when there is nothing discretionary left", () => {
     expect(statusFor(0)).toBe("red");

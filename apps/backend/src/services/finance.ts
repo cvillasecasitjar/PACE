@@ -7,6 +7,7 @@ import type {
 import { evaluateDecision, isDiscretionary, statusFor } from "@pace/shared";
 import { prisma } from "../lib/prisma";
 import { getPersonalContext } from "./personalization";
+import { getUpcomingPlannedThisMonth } from "./plans";
 
 /* -------------------------------------------------------------------------- */
 /* Recurring-payment detection                                                */
@@ -138,6 +139,7 @@ export async function buildDashboard(userId: string): Promise<DashboardSummary> 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const { balance, currency } = await getTotalBalance(userId);
   const upcomingCommitments = await getUpcomingCommitments(userId);
+  const plannedThisMonth = await getUpcomingPlannedThisMonth(userId);
 
   const now = new Date();
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -161,7 +163,7 @@ export async function buildDashboard(userId: string): Promise<DashboardSummary> 
   );
 
   const discretionaryAvailable = round(
-    balance - upcomingCommitments - user.safetyBuffer
+    balance - upcomingCommitments - plannedThisMonth - user.safetyBuffer
   );
 
   const recentTransactions = (
@@ -180,6 +182,7 @@ export async function buildDashboard(userId: string): Promise<DashboardSummary> 
     spentLast7Days,
     spentThisMonth,
     upcomingCommitments,
+    plannedThisMonth,
     safetyBuffer: user.safetyBuffer,
     recentTransactions,
     weeklySpend: buildWeeklySpend(monthTxns),
@@ -193,11 +196,13 @@ export async function runDecision(
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const { balance, currency } = await getTotalBalance(userId);
   const upcomingCommitments = await getUpcomingCommitments(userId);
+  const plannedUpcoming = await getUpcomingPlannedThisMonth(userId);
   const context = await getPersonalContext(userId);
   return evaluateDecision({
     amount,
     currentBalance: balance,
     upcomingCommitments,
+    plannedUpcoming,
     safetyBuffer: user.safetyBuffer,
     currency,
     context,

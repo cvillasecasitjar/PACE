@@ -1,5 +1,5 @@
 import React from "react";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -137,6 +137,36 @@ export function DashboardScreen() {
             </Text>
           </View>
         </Card>
+
+        {/* Planned this month → Calendar */}
+        <Pressable
+          onPress={() => nav.navigate("Calendar")}
+          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, marginTop: t.spacing(4) })}
+        >
+          <Card
+            alt
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: t.spacing(2.5) }}>
+              <Text style={{ fontSize: 22 }}>📅</Text>
+              <View>
+                <Text style={{ color: t.colors.textMuted, fontSize: 13 }}>
+                  {tr("dashboard.planned")}
+                </Text>
+                <Text style={{ color: t.colors.text, fontSize: 18, fontWeight: "800" }}>
+                  {formatMoneyShort(data.plannedThisMonth, data.currency)}
+                </Text>
+              </View>
+            </View>
+            <Text style={{ color: t.colors.primary, fontWeight: "600" }}>
+              {tr("dashboard.viewPlans")} ›
+            </Text>
+          </Card>
+        </Pressable>
 
         <Button
           label={tr("dashboard.canIspend")}

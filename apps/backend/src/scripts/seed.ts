@@ -60,6 +60,34 @@ async function main() {
   }
   console.log(`   • Created ${suggestions.length} starter budgets`);
 
+  // A couple of upcoming plans so the Calendar tab isn't empty.
+  const inDays = (n: number) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + n);
+    return d;
+  };
+  await prisma.plannedEvent.createMany({
+    data: [
+      {
+        userId: user.id,
+        title: "Cena con amigos",
+        type: "dinner",
+        date: inDays(3),
+        estimatedAmount: 30,
+        status: "planned",
+      },
+      {
+        userId: user.id,
+        title: "Concierto",
+        type: "concert",
+        date: inDays(9),
+        estimatedAmount: 45,
+        status: "planned",
+      },
+    ],
+  });
+  console.log("   • Created 2 upcoming plans");
+
   console.log("\n✅ Done. Log in with:");
   console.log(`   email:    ${DEMO_EMAIL}`);
   console.log(`   password: ${DEMO_PASSWORD}\n`);

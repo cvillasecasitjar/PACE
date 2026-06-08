@@ -4,6 +4,12 @@ export interface DecisionInputs {
   amount: number;
   currentBalance: number;
   upcomingCommitments: number;
+  /**
+   * Sum of upcoming planned events (the Calendar) still to come this month.
+   * Treated like a soft commitment: money the user already intends to spend,
+   * so it shouldn't be counted as freely available. Defaults to 0.
+   */
+  plannedUpcoming?: number;
   safetyBuffer: number;
   currency: string;
   /**
@@ -35,9 +41,10 @@ export interface DecisionInputs {
 export function evaluateDecision(inputs: DecisionInputs): DecisionResult {
   const { amount, currentBalance, upcomingCommitments, safetyBuffer, currency } =
     inputs;
+  const plannedUpcoming = inputs.plannedUpcoming ?? 0;
 
   const discretionaryAvailable = round(
-    currentBalance - upcomingCommitments - safetyBuffer
+    currentBalance - upcomingCommitments - plannedUpcoming - safetyBuffer
   );
   const remainingAfter = round(discretionaryAvailable - amount);
 
@@ -90,6 +97,7 @@ export function evaluateDecision(inputs: DecisionInputs): DecisionResult {
     currency,
     currentBalance: round(currentBalance),
     upcomingCommitments: round(upcomingCommitments),
+    plannedThisMonth: round(plannedUpcoming),
     safetyBuffer: round(safetyBuffer),
     discretionaryAvailable,
     remainingAfter,

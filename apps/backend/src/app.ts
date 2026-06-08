@@ -6,6 +6,7 @@ import { userRouter } from "./routes/user";
 import { bankRouter } from "./routes/bank";
 import { transactionsRouter } from "./routes/transactions";
 import { budgetsRouter } from "./routes/budgets";
+import { plansRouter } from "./routes/plans";
 import { decisionRouter, dashboardRouter } from "./routes/decision";
 import { errorHandler, notFoundHandler } from "./middleware/error";
 
@@ -27,6 +28,7 @@ export function createApp() {
   app.use("/api/bank", bankRouter);
   app.use("/api/transactions", transactionsRouter);
   app.use("/api/budgets", budgetsRouter);
+  app.use("/api/plans", plansRouter);
   app.use("/api/decision", decisionRouter);
   app.use("/api/dashboard", dashboardRouter);
 

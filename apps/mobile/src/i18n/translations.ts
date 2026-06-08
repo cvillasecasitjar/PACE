@@ -62,6 +62,9 @@ export const TRANSLATIONS: Record<Locale, Dict> = {
     "dashboard.thisWeek": "Esta semana",
     "dashboard.balance": "Saldo actual",
     "dashboard.viewAll": "Ver todos",
+    "dashboard.status.green": "Vas bien",
+    "dashboard.status.yellow": "Cuidado",
+    "dashboard.status.red": "Ajustado",
 
     "tx.title": "Movimientos",
     "tx.search": "Buscar comercio…",
@@ -163,6 +166,9 @@ export const TRANSLATIONS: Record<Locale, Dict> = {
     "dashboard.thisWeek": "This week",
     "dashboard.balance": "Current balance",
     "dashboard.viewAll": "View all",
+    "dashboard.status.green": "On track",
+    "dashboard.status.yellow": "Careful",
+    "dashboard.status.red": "Tight",
 
     "tx.title": "Transactions",
     "tx.search": "Search merchant…",

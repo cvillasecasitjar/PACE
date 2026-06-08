@@ -43,6 +43,13 @@ export function CanIScreen() {
       ? t.colors.yellow
       : t.colors.red
     : t.colors.text;
+  const verdictSoft = result
+    ? result.verdict === "yes"
+      ? t.colors.greenSoft
+      : result.verdict === "caution"
+      ? t.colors.yellowSoft
+      : t.colors.redSoft
+    : "transparent";
   const verdictEmoji = result
     ? result.verdict === "yes"
       ? "✅"
@@ -75,7 +82,19 @@ export function CanIScreen() {
           </Text>
 
           {result ? (
-            <View style={{ alignItems: "center", marginTop: t.spacing(4) }}>
+            <View
+              style={{
+                alignItems: "center",
+                marginTop: t.spacing(5),
+                backgroundColor: verdictSoft,
+                borderColor: verdictColor + "55",
+                borderWidth: 1,
+                borderRadius: t.radius.xl,
+                paddingVertical: t.spacing(5),
+                paddingHorizontal: t.spacing(4),
+                alignSelf: "stretch",
+              }}
+            >
               <Text style={{ fontSize: 40 }}>{verdictEmoji}</Text>
               <Text
                 style={{
@@ -133,20 +152,26 @@ export function CanIScreen() {
           }}
         >
           {KEYS.map((k) => (
-            <Pressable
+            <View
               key={k}
-              onPress={() => press(k)}
-              style={({ pressed }) => ({
-                width: "33.33%",
-                paddingVertical: t.spacing(4),
-                alignItems: "center",
-                opacity: pressed ? 0.5 : 1,
-              })}
+              style={{ width: "33.33%", paddingVertical: t.spacing(1), alignItems: "center" }}
             >
-              <Text style={{ color: t.colors.text, fontSize: 26, fontWeight: "600" }}>
-                {k}
-              </Text>
-            </Pressable>
+              <Pressable
+                onPress={() => press(k)}
+                style={({ pressed }) => ({
+                  width: 64,
+                  height: 64,
+                  borderRadius: t.radius.pill,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: pressed ? t.colors.cardAlt : "transparent",
+                })}
+              >
+                <Text style={{ color: t.colors.text, fontSize: 26, fontWeight: "600" }}>
+                  {k}
+                </Text>
+              </Pressable>
+            </View>
           ))}
         </View>
 

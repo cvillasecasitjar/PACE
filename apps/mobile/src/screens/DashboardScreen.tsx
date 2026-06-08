@@ -65,7 +65,38 @@ export function DashboardScreen() {
             borderColor: statusColor + "55",
           }}
         >
-          <Muted>{tr("dashboard.available")}</Muted>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Muted>{tr("dashboard.available")}</Muted>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: t.spacing(1.5),
+                backgroundColor: t.colors.bgElevated,
+                paddingVertical: t.spacing(1),
+                paddingHorizontal: t.spacing(2.5),
+                borderRadius: t.radius.pill,
+              }}
+            >
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: statusColor,
+                }}
+              />
+              <Text style={{ color: statusColor, fontSize: 12, fontWeight: "700" }}>
+                {tr(`dashboard.status.${data.status}`)}
+              </Text>
+            </View>
+          </View>
           <Text
             style={{
               color: statusColor,

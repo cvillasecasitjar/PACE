@@ -1,6 +1,6 @@
-# Guía del proyecto Pace (explicada para entenderla)
+# Guía del proyecto Pace 
 
-> Documento pensado para alguien con poca experiencia. Explica **cómo está montada
+> Explica **cómo está montada
 > la app, qué hace cada archivo, dónde está cada cosa y por qué existe**.
 > Si algo no se entiende, busca el término en el **Glosario** del final.
 

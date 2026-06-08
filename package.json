@@ -11,6 +11,7 @@
   "scripts": {
     "backend": "npm run dev --workspace @pace/backend",
     "mobile": "npm run start --workspace @pace/mobile",
+    "mobile:tunnel": "npm run start:tunnel --workspace @pace/mobile",
     "mobile:web": "npm run web --workspace @pace/mobile",
     "build:shared": "npm run build --workspace @pace/shared",
     "db:setup": "npm run db:setup --workspace @pace/backend",

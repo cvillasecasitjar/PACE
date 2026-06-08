@@ -31,6 +31,11 @@ export function Card({
           padding: t.spacing(4),
           borderWidth: 1,
           borderColor: t.colors.border,
+          shadowColor: "#000",
+          shadowOpacity: t.mode === "dark" ? 0.35 : 0.06,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 2,
         },
         style,
       ]}
@@ -82,8 +87,15 @@ export function Button({
           alignItems: "center",
           justifyContent: "center",
           opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          transform: [{ scale: pressed && !disabled ? 0.98 : 1 }],
           borderWidth: isGhost ? 0 : 1,
           borderColor: isPrimary ? t.colors.primary : t.colors.border,
+          // Lift only the primary button so it reads as the main action.
+          shadowColor: isPrimary ? t.colors.primary : "transparent",
+          shadowOpacity: isPrimary ? 0.35 : 0,
+          shadowRadius: isPrimary ? 14 : 0,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: isPrimary ? 4 : 0,
         },
         style,
       ]}

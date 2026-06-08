@@ -210,6 +210,36 @@ En GitHub, pestaña **Actions** (o el ✓/✗ verde/rojo junto a cada commit y e
 pull request). Si está rojo, abres el job y ves **exactamente qué test falló** y por
 qué, con el log completo.
 
+### 7.1 Branch protection (proteger `main`)
+
+El CI te avisa si algo se rompe, pero por sí solo **no impide** mezclar código roto
+en `main`. La *branch protection* añade esa regla: *"no se puede mergear a `main` si
+el CI no está verde"*. Es lo que usan los equipos profesionales.
+
+> **Requisito previo:** el workflow tiene que haberse ejecutado **al menos una vez**
+> en GitHub (con un push o PR), para que el check `Typecheck & tests` aparezca en la
+> lista de checks seleccionables.
+
+Pasos (web de GitHub, opción clásica):
+
+1. Abre el repo → **Settings** (Ajustes).
+2. Menú lateral → **Branches**.
+3. En *Branch protection rules* → **Add branch protection rule**.
+4. **Branch name pattern:** `main`
+5. Marca **Require a pull request before merging** (obliga a usar PRs; recomendado).
+6. Marca **Require status checks to pass before merging**.
+7. En el buscador de checks, escribe y selecciona **`Typecheck & tests`** (es el
+   nombre del *job* definido en `ci.yml`).
+8. (Opcional) Marca **Require branches to be up to date before merging** para que el
+   PR se testee contra la última versión de `main`.
+9. **Create** / **Save changes**.
+
+A partir de ahí, cualquier PR hacia `main` mostrará el check y el botón de merge
+estará bloqueado hasta que esté en verde.
+
+> Alternativa moderna: GitHub **Rulesets** (Settings → Rules → Rulesets) hace lo
+> mismo con más opciones. Para empezar, la regla clásica de arriba es suficiente.
+
 ---
 
 ## 8. Siguiente nivel (cuando crezcas)

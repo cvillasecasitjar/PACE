@@ -15,7 +15,8 @@
     "build:shared": "npm run build --workspace @pace/shared",
     "db:setup": "npm run db:setup --workspace @pace/backend",
     "seed": "npm run seed --workspace @pace/backend",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspace @pace/shared && npm run test --workspace @pace/backend"
   },
   "engines": {
     "node": ">=18"

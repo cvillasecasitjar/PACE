@@ -6,6 +6,18 @@ export interface DecisionInputs {
   upcomingCommitments: number;
   safetyBuffer: number;
   currency: string;
+  /**
+   * Optional personalisation context (Level 1). When provided, the verdict
+   * becomes income-cycle aware instead of a flat threshold: it checks whether
+   * what's left after the purchase can realistically last until the next
+   * income at the user's typical daily spend.
+   */
+  context?: {
+    /** Days until the next expected recurring income. */
+    daysUntilNextIncome: number;
+    /** Average discretionary spend per day, learned from history. */
+    typicalDailySpend: number;
+  };
 }
 
 /**
@@ -29,8 +41,21 @@ export function evaluateDecision(inputs: DecisionInputs): DecisionResult {
   );
   const remainingAfter = round(discretionaryAvailable - amount);
 
-  // A caution band of 15% of the discretionary amount (min €10) lets us flag
-  // purchases that technically fit but leave the user uncomfortably tight.
+  // ---- Personalisation (Level 1) ----------------------------------------
+  // If we know the user's income cycle and daily burn rate, the "caution"
+  // threshold becomes "can what's left survive until the next income at your
+  // usual pace?" instead of a flat percentage. This is what makes Pace work
+  // for irregular income.
+  const ctx = inputs.context;
+  const personalized =
+    !!ctx && ctx.daysUntilNextIncome > 0 && ctx.typicalDailySpend >= 0;
+
+  // What you'd realistically need to reach the next income at your usual pace.
+  const projectedNeed = personalized
+    ? round(ctx!.typicalDailySpend * ctx!.daysUntilNextIncome)
+    : 0;
+
+  // Fallback caution band (15% of discretionary, min €10) when not personalised.
   const cautionBand = Math.max(10, discretionaryAvailable * 0.15);
 
   let verdict: DecisionVerdict;
@@ -39,13 +64,17 @@ export function evaluateDecision(inputs: DecisionInputs): DecisionResult {
   if (remainingAfter < 0) {
     verdict = "no";
     i18nKey = "decision.no";
-  } else if (remainingAfter < cautionBand) {
+  } else if (personalized ? remainingAfter < projectedNeed : remainingAfter < cautionBand) {
     verdict = "caution";
     i18nKey = "decision.caution";
   } else {
     verdict = "yes";
     i18nKey = "decision.yes";
   }
+
+  const dailyAllowanceAfter = personalized
+    ? round(remainingAfter / ctx!.daysUntilNextIncome)
+    : undefined;
 
   const params = {
     amount: amount.toFixed(0),
@@ -66,6 +95,10 @@ export function evaluateDecision(inputs: DecisionInputs): DecisionResult {
     remainingAfter,
     message: buildMessage(verdict, params),
     i18n: { key: i18nKey, params },
+    personalized,
+    typicalDailySpend: personalized ? round(ctx!.typicalDailySpend) : undefined,
+    daysUntilNextIncome: personalized ? ctx!.daysUntilNextIncome : undefined,
+    dailyAllowanceAfter,
   };
 }
 

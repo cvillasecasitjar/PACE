@@ -6,6 +6,7 @@ import type {
 } from "@pace/shared";
 import { evaluateDecision, isDiscretionary, statusFor } from "@pace/shared";
 import { prisma } from "../lib/prisma";
+import { getPersonalContext } from "./personalization";
 
 /* -------------------------------------------------------------------------- */
 /* Recurring-payment detection                                                */
@@ -192,12 +193,14 @@ export async function runDecision(
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const { balance, currency } = await getTotalBalance(userId);
   const upcomingCommitments = await getUpcomingCommitments(userId);
+  const context = await getPersonalContext(userId);
   return evaluateDecision({
     amount,
     currentBalance: balance,
     upcomingCommitments,
     safetyBuffer: user.safetyBuffer,
     currency,
+    context,
   });
 }
 

@@ -99,6 +99,27 @@ export function CanIScreen() {
               >
                 {tr(`${result.i18n.key}.msg`, result.i18n.params)}
               </Text>
+
+              {result.personalized && result.dailyAllowanceAfter != null ? (
+                <Text
+                  style={{
+                    color: t.colors.textFaint,
+                    fontSize: 12,
+                    textAlign: "center",
+                    marginTop: t.spacing(3),
+                    lineHeight: 18,
+                    paddingHorizontal: t.spacing(5),
+                  }}
+                >
+                  💡{" "}
+                  {tr("canI.paceInsight", {
+                    currency: currencySymbol(result.currency),
+                    spend: result.typicalDailySpend ?? 0,
+                    days: result.daysUntilNextIncome ?? 0,
+                    allowance: Math.max(0, result.dailyAllowanceAfter),
+                  })}
+                </Text>
+              ) : null}
             </View>
           ) : null}
         </View>

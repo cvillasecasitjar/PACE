@@ -1,0 +1,51 @@
+name: CI
+
+# Cuándo se ejecuta este pipeline:
+#  - en cada push a main
+#  - en cada pull request hacia main
+# Así ningún cambio que rompa los tests llega a la rama principal sin avisar.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Typecheck & tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descarga el código del repositorio en la máquina del CI.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Instala Node.js 20 y cachea las dependencias de npm (instalaciones más rápidas).
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # 3. Instala TODAS las dependencias del monorepo de forma reproducible
+      #    (npm ci respeta exactamente el package-lock.json).
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Compila el paquete compartido: el backend importa @pace/shared desde su
+      #    build (dist/), así que hay que generarlo antes de typechear/testear.
+      - name: Build shared package
+        run: npm run build:shared
+
+      # 5. Genera el cliente de Prisma (el código TypeScript para hablar con la BBDD).
+      - name: Generate Prisma client
+        run: npm run db:generate --workspace @pace/backend
+
+      # 6. Comprueba que no haya errores de tipos en ningún workspace.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # 7. Ejecuta toda la suite de tests (shared + backend, incluida la integración).
+      #    El test de integración crea su propia BBDD SQLite desechable (test.db).
+      - name: Run tests
+        run: npm test

@@ -84,6 +84,8 @@ export const TRANSLATIONS: Record<Locale, Dict> = {
     "canI.ask": "¿Puedo permitírmelo?",
     "canI.available": "Disponible para extras",
     "canI.afterThis": "Después te quedarían",
+    "canI.paceInsight":
+      "A tu ritmo (~{currency}{spend}/día) y con tu próximo ingreso en {days} días, te quedarían {currency}{allowance}/día.",
     "decision.yes": "¡Adelante!",
     "decision.caution": "Puedes, pero justo",
     "decision.no": "Mejor espera",
@@ -183,6 +185,8 @@ export const TRANSLATIONS: Record<Locale, Dict> = {
     "canI.ask": "Can I afford it?",
     "canI.available": "Available for extras",
     "canI.afterThis": "After this you'd have",
+    "canI.paceInsight":
+      "At your pace (~{currency}{spend}/day) and with your next income in {days} days, you'd have {currency}{allowance}/day left.",
     "decision.yes": "Go for it!",
     "decision.caution": "You can, but it's tight",
     "decision.no": "Better wait",

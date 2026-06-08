@@ -90,6 +90,20 @@ export interface DecisionResult {
   message: string;
   /** Localisation key + params so the client can render in the user's language. */
   i18n: { key: string; params: Record<string, string | number> };
+
+  /**
+   * Personalisation block (Level 1). Present only when we have enough history
+   * to learn the user's real spending rhythm and income cycle. Designed for
+   * irregular income: the verdict accounts for how many days remain until the
+   * next expected income at the user's typical daily burn rate.
+   */
+  personalized?: boolean;
+  /** Average discretionary ("fun money") spend per day, learned from history. */
+  typicalDailySpend?: number;
+  /** Estimated days until the next recurring income lands. */
+  daysUntilNextIncome?: number;
+  /** How much/day you could spend until next income AFTER this purchase. */
+  dailyAllowanceAfter?: number;
 }
 
 /** ----- Dashboard aggregate ----- */

@@ -1,0 +1,23 @@
+{
+  "name": "pace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pace — the only financial app that thinks like a student.",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "backend": "npm run dev --workspace @pace/backend",
+    "mobile": "npm run start --workspace @pace/mobile",
+    "mobile:web": "npm run web --workspace @pace/mobile",
+    "build:shared": "npm run build --workspace @pace/shared",
+    "db:setup": "npm run db:setup --workspace @pace/backend",
+    "seed": "npm run seed --workspace @pace/backend",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

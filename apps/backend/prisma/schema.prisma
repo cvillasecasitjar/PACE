@@ -1,0 +1,113 @@
+// Pace database schema.
+//
+// Dev uses SQLite (zero setup). Production targets PostgreSQL / Supabase — the
+// schema is intentionally kept portable. To switch, change `provider` to
+// "postgresql" and point DATABASE_URL at your Postgres/Supabase instance.
+//
+// NOTE: monetary amounts use Float here for SQLite-friendly, dependency-free
+// arithmetic in the demo. In production on Postgres these map cleanly to
+// NUMERIC/DECIMAL columns for exact money handling.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  safetyBuffer Float    @default(100)
+  locale       String   @default("es")
+  createdAt    DateTime @default(now())
+
+  connections  BankConnection[]
+  transactions Transaction[]
+  budgets      Budget[]
+  auditLogs    AuditLog[]
+}
+
+model BankConnection {
+  id              String    @id @default(uuid())
+  userId          String
+  provider        String    @default("mock") // "mock" | "tink" | "plaid"
+  institutionName String
+  accountId       String
+  mask            String    @default("••••")
+  currency        String    @default("EUR")
+  balance         Float     @default(0)
+  // Bank access token, AES-256 encrypted at rest. Pace never stores raw
+  // banking credentials — only this read-only (AISP) token from the provider.
+  encryptedToken  String
+  lastSync        DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id                String   @id @default(uuid())
+  userId            String
+  connectionId      String
+  // Provider-side id, used to de-duplicate on re-sync.
+  externalId        String
+  amount            Float // negative = expense, positive = income
+  currency          String   @default("EUR")
+  description       String
+  merchant          String?
+  category          String   @default("other")
+  categoryConfirmed Boolean  @default(false)
+  isRecurring       Boolean  @default(false)
+  date              DateTime
+  createdAt         DateTime @default(now())
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connection BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalId])
+  @@index([userId, date])
+}
+
+model Budget {
+  id       String @id @default(uuid())
+  userId   String
+  category String
+  limit    Float
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+}
+
+// Learned mapping from a merchant/description keyword to a category, built up
+// from the user's manual corrections (FR-04: "the system learns over time").
+model CategoryRule {
+  id       String @id @default(uuid())
+  userId   String
+  keyword  String
+  category String
+
+  @@unique([userId, keyword])
+}
+
+// Every access to banking data is logged for traceability (NFR-01 / PSD2).
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

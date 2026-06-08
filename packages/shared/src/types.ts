@@ -1,0 +1,123 @@
+import type { CategoryId } from "./categories";
+
+/** Supported Open Banking providers behind the abstraction layer. */
+export type BankProviderId = "mock" | "tink" | "plaid";
+
+export type Locale = "en" | "es";
+
+export interface User {
+  id: string;
+  email: string;
+  displayName: string;
+  /** User-configured safety buffer in their main currency (e.g. €). */
+  safetyBuffer: number;
+  locale: Locale;
+  createdAt: string;
+}
+
+export interface BankConnection {
+  id: string;
+  userId: string;
+  provider: BankProviderId;
+  /** Human-friendly institution name, e.g. "BBVA" or "Demo Bank". */
+  institutionName: string;
+  /** Provider-side account identifier. */
+  accountId: string;
+  /** Masked account label shown to the user, e.g. "•••• 4321". */
+  mask: string;
+  currency: string;
+  /** Current balance as last synchronised. */
+  balance: number;
+  lastSync: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  connectionId: string;
+  /** Negative = expense, positive = income. */
+  amount: number;
+  currency: string;
+  description: string;
+  merchant: string | null;
+  category: CategoryId;
+  /** True when the user manually corrected the category (used for learning). */
+  categoryConfirmed: boolean;
+  isRecurring: boolean;
+  date: string;
+  createdAt: string;
+}
+
+export interface Budget {
+  id: string;
+  userId: string;
+  category: CategoryId;
+  /** Monthly limit. */
+  limit: number;
+  /** Amount spent so far this month in this category (computed). */
+  spent: number;
+  /** "YYYY-MM" period this budget snapshot refers to. */
+  period: string;
+}
+
+/** ----- Decision engine ("Can I afford this?") ----- */
+
+export type DecisionVerdict = "yes" | "caution" | "no";
+
+export interface DecisionRequest {
+  amount: number;
+  /** Optional category to attribute the hypothetical spend to. */
+  category?: CategoryId;
+}
+
+export interface DecisionResult {
+  verdict: DecisionVerdict;
+  amount: number;
+  currency: string;
+  /** Money currently available across active accounts. */
+  currentBalance: number;
+  /** Detected fixed commitments still due before month end. */
+  upcomingCommitments: number;
+  /** The user's configured safety buffer. */
+  safetyBuffer: number;
+  /** balance − commitments − buffer (the true discretionary amount). */
+  discretionaryAvailable: number;
+  /** What would remain after the hypothetical purchase. */
+  remainingAfter: number;
+  /** Short, human, non-alarming recommendation. */
+  message: string;
+  /** Localisation key + params so the client can render in the user's language. */
+  i18n: { key: string; params: Record<string, string | number> };
+}
+
+/** ----- Dashboard aggregate ----- */
+
+export interface DashboardSummary {
+  currency: string;
+  currentBalance: number;
+  /** Discretionary "fun money" left this month. */
+  discretionaryAvailable: number;
+  /** Traffic-light status for the headline card. */
+  status: "green" | "yellow" | "red";
+  spentLast7Days: number;
+  spentThisMonth: number;
+  upcomingCommitments: number;
+  safetyBuffer: number;
+  recentTransactions: Transaction[];
+  /** Daily spend totals for the current week (Mon→Sun) for the mini chart. */
+  weeklySpend: { date: string; amount: number }[];
+}
+
+/** ----- Auth ----- */
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+export interface ApiError {
+  error: string;
+  message: string;
+}

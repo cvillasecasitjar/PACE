@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../theme";
 import { useT } from "../i18n";
-import { Button, Card, Loader, Muted } from "../components/ui";
+import { Button, Card, ErrorState, Loader, Muted } from "../components/ui";
 import { WeeklyChart } from "../components/WeeklyChart";
 import { TransactionRow } from "../components/TransactionRow";
 import { useDashboard, useSync } from "../api/hooks";
@@ -18,10 +18,25 @@ export function DashboardScreen() {
   const { t: tr } = useT();
   const nav = useNavigation<BottomTabNavigationProp<MainTabsParamList>>();
   const user = useAuth((s) => s.user);
-  const { data, isLoading, refetch, isRefetching } = useDashboard();
+  const { data, isLoading, isError, refetch, isRefetching } = useDashboard();
   const sync = useSync();
 
-  if (isLoading || !data) return <Loader label={tr("common.loading")} />;
+  if (isLoading) return <Loader label={tr("common.loading")} />;
+
+  if (isError || !data) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.colors.bg }}>
+        <ErrorState
+          title={tr("errors.loadTitle")}
+          message={tr("errors.network")}
+          onRetry={() => {
+            void refetch();
+          }}
+          retryLabel={tr("common.retry")}
+        />
+      </SafeAreaView>
+    );
+  }
 
   const statusColor =
     data.status === "green"

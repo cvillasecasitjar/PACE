@@ -6,9 +6,9 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "../theme";
 import { useT } from "../i18n";
-import { Button, Card, Heading, Muted } from "../components/ui";
+import { Button, Card, ErrorBanner, Heading, Muted } from "../components/ui";
 import { BankApi } from "../api/endpoints";
-import { apiErrorMessage } from "../api/client";
+import { useErrorText } from "../api/errors";
 import { qk } from "../api/hooks";
 import type { OnboardingStackParamList } from "../navigation/types";
 
@@ -17,6 +17,7 @@ export function ConnectBankScreen() {
   const { t: tr } = useT();
   const nav = useNavigation<NativeStackNavigationProp<OnboardingStackParamList>>();
   const qc = useQueryClient();
+  const errorText = useErrorText();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +29,7 @@ export function ConnectBankScreen() {
       await qc.invalidateQueries({ queryKey: qk.connections });
       nav.navigate("Buffer");
     } catch (e) {
-      setError(apiErrorMessage(e));
+      setError(errorText(e));
     } finally {
       setLoading(false);
     }
@@ -54,9 +55,7 @@ export function ConnectBankScreen() {
           </Card>
 
           {error ? (
-            <Text style={{ color: t.colors.red, marginTop: t.spacing(4) }}>
-              {error}
-            </Text>
+            <ErrorBanner message={error} style={{ marginTop: t.spacing(4) }} />
           ) : null}
         </View>
 

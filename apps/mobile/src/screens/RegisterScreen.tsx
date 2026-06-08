@@ -5,10 +5,10 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useT } from "../i18n";
-import { Button, Heading, Muted } from "../components/ui";
+import { Button, ErrorBanner, Heading, Muted } from "../components/ui";
 import { Input } from "../components/Input";
 import { AuthApi } from "../api/endpoints";
-import { apiErrorMessage } from "../api/client";
+import { useErrorText } from "../api/errors";
 import { useAuth } from "../store/auth";
 import { useSettings } from "../store/settings";
 import type { AuthStackParamList } from "../navigation/types";
@@ -19,6 +19,7 @@ export function RegisterScreen() {
   const nav = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const signIn = useAuth((s) => s.signIn);
   const locale = useSettings((s) => s.locale);
+  const errorText = useErrorText();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -38,7 +39,7 @@ export function RegisterScreen() {
       });
       await signIn(res.token, res.user);
     } catch (e) {
-      setError(apiErrorMessage(e));
+      setError(errorText(e));
     } finally {
       setLoading(false);
     }
@@ -81,9 +82,7 @@ export function RegisterScreen() {
           />
 
           {error ? (
-            <Text style={{ color: t.colors.red, marginBottom: t.spacing(3) }}>
-              {error}
-            </Text>
+            <ErrorBanner message={error} style={{ marginBottom: t.spacing(3) }} />
           ) : null}
 
           <Button

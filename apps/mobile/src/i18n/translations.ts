@@ -17,6 +17,17 @@ export const TRANSLATIONS: Record<Locale, Dict> = {
     "common.retry": "Reintentar",
     "common.error": "Algo salió mal",
 
+    "errors.network":
+      "No pudimos conectar con el servidor. Revisa tu conexión a internet e inténtalo de nuevo.",
+    "errors.timeout":
+      "El servidor tardó demasiado en responder. Inténtalo de nuevo.",
+    "errors.server":
+      "Algo falló en el servidor. Inténtalo de nuevo en un momento.",
+    "errors.invalidCredentials": "Email o contraseña incorrectos.",
+    "errors.emailTaken": "Ya existe una cuenta con este email.",
+    "errors.generic": "Algo salió mal. Inténtalo de nuevo.",
+    "errors.loadTitle": "No pudimos cargar tus datos",
+
     "onboarding.welcome.title": "Sabe cuánto puedes gastar,\nen tiempo real.",
     "onboarding.welcome.subtitle":
       "Pace conecta tu banco y te dice si puedes permitirte algo ahora mismo. Sin hojas de cálculo. Sin estrés.",
@@ -120,6 +131,17 @@ export const TRANSLATIONS: Record<Locale, Dict> = {
     "common.loading": "Loading…",
     "common.retry": "Retry",
     "common.error": "Something went wrong",
+
+    "errors.network":
+      "We couldn't reach the server. Check your internet connection and try again.",
+    "errors.timeout":
+      "The server took too long to respond. Please try again.",
+    "errors.server":
+      "Something went wrong on the server. Try again in a moment.",
+    "errors.invalidCredentials": "Incorrect email or password.",
+    "errors.emailTaken": "An account with this email already exists.",
+    "errors.generic": "Something went wrong. Please try again.",
+    "errors.loadTitle": "We couldn't load your data",
 
     "onboarding.welcome.title": "Know what you can spend,\nin real time.",
     "onboarding.welcome.subtitle":

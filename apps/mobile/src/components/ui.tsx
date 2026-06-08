@@ -242,3 +242,94 @@ export function Loader({ label }: { label?: string }) {
     </View>
   );
 }
+
+/** Inline error message for forms (e.g. failed login). */
+export function ErrorBanner({
+  message,
+  style,
+}: {
+  message: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const t = useTheme();
+  return (
+    <View
+      style={[
+        {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: t.spacing(2),
+          backgroundColor: t.colors.redSoft,
+          borderColor: t.colors.red + "55",
+          borderWidth: 1,
+          borderRadius: t.radius.md,
+          paddingVertical: t.spacing(3),
+          paddingHorizontal: t.spacing(3.5),
+        },
+        style,
+      ]}
+    >
+      <Text style={{ fontSize: 16 }}>⚠️</Text>
+      <Text
+        style={{
+          color: t.colors.red,
+          flex: 1,
+          fontSize: 14,
+          fontWeight: "600",
+        }}
+      >
+        {message}
+      </Text>
+    </View>
+  );
+}
+
+/** Full-screen error state with an optional retry action. */
+export function ErrorState({
+  title,
+  message,
+  onRetry,
+  retryLabel,
+}: {
+  title: string;
+  message?: string;
+  onRetry?: () => void;
+  retryLabel?: string;
+}) {
+  const t = useTheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: t.spacing(6),
+      }}
+    >
+      <Text style={{ fontSize: 44, marginBottom: t.spacing(3) }}>📡</Text>
+      <Text
+        style={{
+          color: t.colors.text,
+          fontSize: 18,
+          fontWeight: "800",
+          textAlign: "center",
+        }}
+      >
+        {title}
+      </Text>
+      {message ? (
+        <Muted style={{ textAlign: "center", marginTop: t.spacing(2) }}>
+          {message}
+        </Muted>
+      ) : null}
+      {onRetry && retryLabel ? (
+        <Button
+          label={retryLabel}
+          onPress={onRetry}
+          variant="secondary"
+          style={{ marginTop: t.spacing(5), alignSelf: "stretch" }}
+        />
+      ) : null}
+    </View>
+  );
+}

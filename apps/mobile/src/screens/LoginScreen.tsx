@@ -5,10 +5,10 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useT } from "../i18n";
-import { Button, Heading, Muted } from "../components/ui";
+import { Button, ErrorBanner, Heading, Muted } from "../components/ui";
 import { Input } from "../components/Input";
 import { AuthApi } from "../api/endpoints";
-import { apiErrorMessage } from "../api/client";
+import { useErrorText } from "../api/errors";
 import { useAuth } from "../store/auth";
 import type { AuthStackParamList } from "../navigation/types";
 
@@ -17,6 +17,7 @@ export function LoginScreen() {
   const { t: tr } = useT();
   const nav = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const signIn = useAuth((s) => s.signIn);
+  const errorText = useErrorText();
 
   const [email, setEmail] = useState("demo@pace.app");
   const [password, setPassword] = useState("pace1234");
@@ -30,7 +31,7 @@ export function LoginScreen() {
       const res = await AuthApi.login({ email: email.trim(), password });
       await signIn(res.token, res.user);
     } catch (e) {
-      setError(apiErrorMessage(e));
+      setError(errorText(e));
     } finally {
       setLoading(false);
     }
@@ -67,9 +68,7 @@ export function LoginScreen() {
           />
 
           {error ? (
-            <Text style={{ color: t.colors.red, marginBottom: t.spacing(3) }}>
-              {error}
-            </Text>
+            <ErrorBanner message={error} style={{ marginBottom: t.spacing(3) }} />
           ) : null}
 
           <Button

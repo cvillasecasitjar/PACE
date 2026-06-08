@@ -31,6 +31,7 @@ type PlanRow = {
   estimatedAmount: number;
   actualAmount: number | null;
   status: string;
+  matchedTxId: string | null;
   createdAt: Date;
 };
 
@@ -45,6 +46,7 @@ function toShared(p: PlanRow): PlannedEvent {
     estimatedAmount: round(p.estimatedAmount),
     actualAmount: p.actualAmount == null ? null : round(p.actualAmount),
     status: p.status as PlanStatus,
+    matchedTxId: p.matchedTxId,
     createdAt: p.createdAt.toISOString(),
   };
 }
@@ -207,6 +209,84 @@ export async function suggestAmountForType(
   }
 
   return { type: meta.id, suggested: meta.defaultAmount, basis: "default" };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Auto-reconciliation                                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Match still-pending plans whose day has already arrived against real
+ * transactions, and mark them "done" with the actual cost. This is what lets
+ * estimates learn: you plan a 40€ dinner, the 47€ restaurant charge shows up,
+ * and the plan becomes "done = 47€" automatically.
+ *
+ * Matching rule (deliberately conservative):
+ *   - plan is still "planned", its day has passed (date <= now), not yet linked
+ *   - a transaction exists in the SAME category as the plan type
+ *   - dated within [start − 1 day, end + 2 days]
+ *   - not already used to reconcile another plan
+ *   - among candidates, pick the amount closest to the estimate
+ * Runs after each sync. Returns how many plans were reconciled.
+ */
+export async function reconcilePlans(userId: string): Promise<number> {
+  const now = new Date();
+  const pending = await prisma.plannedEvent.findMany({
+    where: {
+      userId,
+      status: "planned",
+      matchedTxId: null,
+      date: { lte: now },
+    },
+    orderBy: { date: "asc" },
+  });
+  if (pending.length === 0) return 0;
+
+  const usedTx = new Set<string>();
+  let reconciled = 0;
+
+  for (const plan of pending) {
+    const meta = getPlanType(plan.type as PlanType);
+    const start = plan.date;
+    const end = plan.endDate ?? plan.date;
+    const windowStart = new Date(start);
+    windowStart.setUTCDate(windowStart.getUTCDate() - 1);
+    const windowEnd = new Date(end);
+    windowEnd.setUTCDate(windowEnd.getUTCDate() + 2);
+
+    const candidates = await prisma.transaction.findMany({
+      where: {
+        userId,
+        amount: { lt: 0 },
+        category: meta.category,
+        date: { gte: windowStart, lte: windowEnd },
+      },
+    });
+
+    const available = candidates
+      .filter((c) => !usedTx.has(c.id))
+      .sort(
+        (a, b) =>
+          Math.abs(Math.abs(a.amount) - plan.estimatedAmount) -
+          Math.abs(Math.abs(b.amount) - plan.estimatedAmount)
+      );
+
+    const match = available[0];
+    if (!match) continue;
+
+    usedTx.add(match.id);
+    await prisma.plannedEvent.update({
+      where: { id: plan.id },
+      data: {
+        status: "done",
+        actualAmount: round(Math.abs(match.amount)),
+        matchedTxId: match.id,
+      },
+    });
+    reconciled++;
+  }
+
+  return reconciled;
 }
 
 /* -------------------------------------------------------------------------- */

@@ -102,6 +102,7 @@ model PlannedEvent {
   estimatedAmount Float
   actualAmount    Float?
   status          String    @default("planned") // planned | done | skipped
+  matchedTxId     String?   // transaction that fulfilled this plan (auto-reconciled)
   createdAt       DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

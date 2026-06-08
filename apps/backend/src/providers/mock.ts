@@ -35,7 +35,10 @@ export class MockBankProvider implements BankProvider {
     };
     // Bake the accountId into the token so generation is stable per account.
     const fullToken = `${token}.${account.accountId}`;
-    account.balance = computeBalance(generate(fullToken, account.accountId));
+    account.balance = computeBalance(
+      generate(fullToken, account.accountId),
+      openingFor(fullToken)
+    );
     return { token: fullToken, accounts: [account], authUrl: null };
   }
 
@@ -54,7 +57,10 @@ export class MockBankProvider implements BankProvider {
     token: string;
     accountId: string;
   }): Promise<number> {
-    return computeBalance(generate(opts.token, opts.accountId));
+    return computeBalance(
+      generate(opts.token, opts.accountId),
+      openingFor(opts.token)
+    );
   }
 
   async revoke(): Promise<void> {
@@ -66,11 +72,27 @@ export class MockBankProvider implements BankProvider {
 /* Deterministic generation                                                   */
 /* -------------------------------------------------------------------------- */
 
-function computeBalance(txns: ProviderTransaction[]): number {
-  // Start from a plausible opening balance, then apply all movements.
-  const opening = 350;
+function computeBalance(txns: ProviderTransaction[], opening = 350): number {
+  // Start from an opening balance, then apply all movements.
   const sum = txns.reduce((acc, t) => acc + t.amount, 0);
   return round(opening + sum);
+}
+
+/**
+ * Opening balance for an account. A token may carry an explicit opening as
+ * `~open=<n>` (used by the seed to anchor a profile to a target balance). The
+ * marker is stripped before generating transactions, so it never changes the
+ * history — only the starting balance. Defaults to a modest student opening.
+ */
+function openingFor(token: string): number {
+  const m = token.match(/~open=(-?\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : 350;
+}
+
+/** Token without any `~marker=...` overrides — used as the RNG seed. */
+function baseToken(token: string): string {
+  const i = token.indexOf("~");
+  return i === -1 ? token : token.slice(0, i);
 }
 
 const RECURRING: {
@@ -104,7 +126,7 @@ const TRANSPORT_MERCHANTS = ["Metro Madrid", "Cabify", "Renfe", "BiciMad"];
 const SHOPPING_MERCHANTS = ["Zara", "Amazon", "Decathlon", "FNAC"];
 
 function generate(token: string, accountId: string): ProviderTransaction[] {
-  const rng = mulberry32(hashSeed(token + accountId));
+  const rng = mulberry32(hashSeed(baseToken(token) + accountId));
   const txns: ProviderTransaction[] = [];
   const today = new Date();
   // Generate ~90 days of history.

@@ -39,7 +39,9 @@ function planDays(p: PlannedEvent): string[] {
 export function CalendarScreen() {
   const t = useTheme();
   const { t: tr, locale } = useT();
-  const { data: plans, isLoading, isError, refetch } = usePlans(true);
+  // Fetch all plans (not just upcoming) so done/past plans still show on the
+  // calendar with their real cost.
+  const { data: plans, isLoading, isError, refetch } = usePlans(false);
   const { data: dashboard } = useDashboard();
   const currency = dashboard?.currency ?? "EUR";
 
@@ -143,6 +145,8 @@ export function CalendarScreen() {
           <Card style={{ padding: t.spacing(2) }}>
             {dayPlans.map((p, i) => {
               const meta = getPlanType(p.type);
+              const done = p.status === "done";
+              const shownAmount = done ? p.actualAmount ?? p.estimatedAmount : p.estimatedAmount;
               return (
                 <Pressable
                   key={p.id}
@@ -155,9 +159,12 @@ export function CalendarScreen() {
                     backgroundColor: pressed ? t.colors.cardAlt : "transparent",
                     borderTopWidth: i > 0 ? 1 : 0,
                     borderTopColor: t.colors.border,
+                    opacity: done ? 0.75 : 1,
                   })}
                 >
-                  <Text style={{ fontSize: 24, marginRight: t.spacing(3) }}>{meta.icon}</Text>
+                  <Text style={{ fontSize: 24, marginRight: t.spacing(3) }}>
+                    {done ? "✅" : meta.icon}
+                  </Text>
                   <View style={{ flex: 1 }}>
                     <Text
                       style={{ color: t.colors.text, fontSize: 16, fontWeight: "600" }}
@@ -166,12 +173,22 @@ export function CalendarScreen() {
                       {p.title}
                     </Text>
                     <Text style={{ color: t.colors.textMuted, fontSize: 12 }}>
-                      {locale === "es" ? meta.label_es : meta.label_en}
+                      {done
+                        ? tr("plan.doneBadge")
+                        : locale === "es"
+                        ? meta.label_es
+                        : meta.label_en}
                       {p.endDate ? ` · ${tr("calendar.multiDay")}` : ""}
                     </Text>
                   </View>
-                  <Text style={{ color: t.colors.text, fontSize: 16, fontWeight: "700" }}>
-                    {formatMoney(p.estimatedAmount, currency)}
+                  <Text
+                    style={{
+                      color: done ? t.colors.green : t.colors.text,
+                      fontSize: 16,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {formatMoney(shownAmount, currency)}
                   </Text>
                 </Pressable>
               );

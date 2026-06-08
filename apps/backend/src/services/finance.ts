@@ -4,10 +4,25 @@ import type {
   Transaction as SharedTransaction,
   CategoryId,
 } from "@pace/shared";
-import { evaluateDecision, isDiscretionary, statusFor } from "@pace/shared";
+import {
+  CATEGORY_IDS,
+  evaluateDecision,
+  isDiscretionary,
+  statusFor,
+} from "@pace/shared";
 import { prisma } from "../lib/prisma";
 import { getPersonalContext } from "./personalization";
 import { getUpcomingPlannedThisMonth } from "./plans";
+
+/**
+ * Essential (non-discretionary) expense categories. Money still expected to be
+ * spent on these this month must NOT count as "fun money": groceries, rent,
+ * transport, subscriptions, bills, health, education. Income/transfers are
+ * excluded because they are not spending.
+ */
+const ESSENTIAL_CATEGORIES = CATEGORY_IDS.filter(
+  (c) => !isDiscretionary(c) && c !== "income" && c !== "transfers"
+);
 
 /* -------------------------------------------------------------------------- */
 /* Recurring-payment detection                                                */
@@ -119,6 +134,58 @@ export async function getUpcomingCommitments(userId: string): Promise<number> {
   return round(total);
 }
 
+/**
+ * Money that must stay reserved for essentials for the rest of the month, so it
+ * is excluded from "fun money". For every essential category we take, per
+ * category, the LARGER of:
+ *   - remaining budget   = max(0, monthly limit − already spent this month)
+ *   - upcoming recurring = recurring charges in that category still due
+ * Taking the max (instead of the sum) avoids double-counting a budgeted bill
+ * that is also detected as recurring. Categories without a budget still reserve
+ * their detected recurring charges; budgeted categories reserve what you set.
+ */
+export async function getReservedEssentials(userId: string): Promise<number> {
+  const now = new Date();
+  const startOfMonth = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+  );
+  const dom = now.getUTCDate();
+
+  const [budgets, monthTxns, recurring] = await Promise.all([
+    prisma.budget.findMany({ where: { userId } }),
+    prisma.transaction.findMany({
+      where: { userId, amount: { lt: 0 }, date: { gte: startOfMonth } },
+      select: { amount: true, category: true },
+    }),
+    getRecurringPayments(userId),
+  ]);
+
+  const spent: Record<string, number> = {};
+  for (const t of monthTxns) {
+    spent[t.category] = (spent[t.category] ?? 0) + Math.abs(t.amount);
+  }
+
+  const limit: Record<string, number> = {};
+  for (const b of budgets) limit[b.category] = b.limit;
+
+  const recurringRemaining: Record<string, number> = {};
+  for (const r of recurring) {
+    if (r.typicalDayOfMonth >= dom) {
+      recurringRemaining[r.category] =
+        (recurringRemaining[r.category] ?? 0) + r.typicalAmount;
+    }
+  }
+
+  let total = 0;
+  for (const c of ESSENTIAL_CATEGORIES) {
+    const remainingBudget =
+      limit[c] != null ? Math.max(0, limit[c] - (spent[c] ?? 0)) : 0;
+    const remainingRecurring = recurringRemaining[c] ?? 0;
+    total += Math.max(remainingBudget, remainingRecurring);
+  }
+  return round(total);
+}
+
 /* -------------------------------------------------------------------------- */
 /* Balance, dashboard & decision                                              */
 /* -------------------------------------------------------------------------- */
@@ -138,7 +205,10 @@ export async function getTotalBalance(userId: string): Promise<{
 export async function buildDashboard(userId: string): Promise<DashboardSummary> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const { balance, currency } = await getTotalBalance(userId);
-  const upcomingCommitments = await getUpcomingCommitments(userId);
+  // Reserve recurring fixed costs AND the remaining budget for essentials
+  // (groceries, rent, transport, subscriptions, bills) so none of it is
+  // treated as fun money.
+  const upcomingCommitments = await getReservedEssentials(userId);
   const plannedThisMonth = await getUpcomingPlannedThisMonth(userId);
 
   const now = new Date();
@@ -166,6 +236,8 @@ export async function buildDashboard(userId: string): Promise<DashboardSummary> 
     balance - upcomingCommitments - plannedThisMonth - user.safetyBuffer
   );
 
+  const categoryBreakdown = await buildCategoryBreakdown(userId, monthTxns, spentThisMonth);
+
   const recentTransactions = (
     await prisma.transaction.findMany({
       where: { userId },
@@ -186,7 +258,35 @@ export async function buildDashboard(userId: string): Promise<DashboardSummary> 
     safetyBuffer: user.safetyBuffer,
     recentTransactions,
     weeklySpend: buildWeeklySpend(monthTxns),
+    categoryBreakdown,
   };
+}
+
+/** This month's spend grouped by category (sorted high→low), with budgets. */
+async function buildCategoryBreakdown(
+  userId: string,
+  monthTxns: { amount: number; category: string }[],
+  totalSpent: number
+): Promise<DashboardSummary["categoryBreakdown"]> {
+  const budgets = await prisma.budget.findMany({ where: { userId } });
+  const limit: Record<string, number> = {};
+  for (const b of budgets) limit[b.category] = b.limit;
+
+  const spent: Record<string, number> = {};
+  for (const t of monthTxns) {
+    // Spending only; skip income and internal transfers.
+    if (t.amount >= 0 || t.category === "transfers") continue;
+    spent[t.category] = (spent[t.category] ?? 0) + Math.abs(t.amount);
+  }
+
+  return Object.entries(spent)
+    .map(([category, amount]) => ({
+      category: category as CategoryId,
+      spent: round(amount),
+      budgetLimit: limit[category] ?? null,
+      share: totalSpent > 0 ? amount / totalSpent : 0,
+    }))
+    .sort((a, b) => b.spent - a.spent);
 }
 
 export async function runDecision(
@@ -195,7 +295,7 @@ export async function runDecision(
 ): Promise<DecisionResult> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const { balance, currency } = await getTotalBalance(userId);
-  const upcomingCommitments = await getUpcomingCommitments(userId);
+  const upcomingCommitments = await getReservedEssentials(userId);
   const plannedUpcoming = await getUpcomingPlannedThisMonth(userId);
   const context = await getPersonalContext(userId);
   return evaluateDecision({

@@ -6,7 +6,7 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../theme";
 import { useT } from "../i18n";
 import { Button, Card, ErrorState, Loader, Muted } from "../components/ui";
-import { WeeklyChart } from "../components/WeeklyChart";
+import { CategoryBreakdown } from "../components/CategoryBreakdown";
 import { TransactionRow } from "../components/TransactionRow";
 import { useDashboard, useSync } from "../api/hooks";
 import { useAuth } from "../store/auth";
@@ -186,10 +186,25 @@ export function DashboardScreen() {
           />
         </View>
 
-        {/* Weekly chart */}
+        {/* Monthly spend by category */}
         <Card style={{ marginTop: t.spacing(4) }}>
-          <Muted style={{ marginBottom: t.spacing(3) }}>{tr("dashboard.thisWeek")}</Muted>
-          <WeeklyChart data={data.weeklySpend} currency={data.currency} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: t.spacing(3),
+            }}
+          >
+            <Muted>{tr("dashboard.byCategory")}</Muted>
+            <Text
+              onPress={() => nav.navigate("Budgets")}
+              style={{ color: t.colors.primary, fontSize: 13, fontWeight: "600" }}
+            >
+              {tr("dashboard.adjustBudgets")}
+            </Text>
+          </View>
+          <CategoryBreakdown data={data.categoryBreakdown} currency={data.currency} />
         </Card>
 
         {/* Recent transactions */}

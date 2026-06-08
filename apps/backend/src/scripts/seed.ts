@@ -1,37 +1,72 @@
+import type { Locale } from "@pace/shared";
 import { prisma } from "../lib/prisma";
 import { hashPassword } from "../lib/auth";
 import { encryptToken } from "../lib/crypto";
 import { getProvider } from "../providers";
 import { syncConnection } from "../services/sync";
 import { suggestBudgets } from "../services/budgets";
+import { reconcilePlans } from "../services/plans";
 
-const DEMO_EMAIL = "demo@pace.app";
 const DEMO_PASSWORD = "pace1234";
 
-async function main() {
-  console.log("🌱 Seeding Pace demo data…");
+function inDays(n: number): Date {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + n);
+  return d;
+}
 
-  // Reset the demo user for a clean, repeatable seed.
-  await prisma.user.deleteMany({ where: { email: DEMO_EMAIL } });
+function round(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+interface SeedProfile {
+  email: string;
+  displayName: string;
+  locale: Locale;
+  safetyBuffer: number;
+  /** If set, the account balance is anchored to roughly this figure. */
+  targetBalance?: number;
+}
+
+async function seedUser(p: SeedProfile): Promise<void> {
+  // Reset this user for a clean, repeatable seed.
+  await prisma.user.deleteMany({ where: { email: p.email } });
 
   const user = await prisma.user.create({
     data: {
-      email: DEMO_EMAIL,
+      email: p.email,
       passwordHash: await hashPassword(DEMO_PASSWORD),
-      displayName: "Alex",
-      safetyBuffer: 100,
-      locale: "es",
+      displayName: p.displayName,
+      safetyBuffer: p.safetyBuffer,
+      locale: p.locale,
     },
   });
-  console.log(`   • Created user ${user.email}`);
+  console.log(`\n👤 ${p.displayName} <${p.email}>`);
 
-  // Connect a mock bank account and import its history.
+  // Connect a mock bank account.
   const provider = getProvider("mock");
   const result = await provider.initiateConnection({
     userId: user.id,
     institution: "Demo Bank",
   });
   const account = result.accounts[0];
+
+  // Anchor the balance to the target by encoding an opening into the token.
+  // The opening marker doesn't change the generated history, only the starting
+  // balance — so the figure stays stable across re-syncs.
+  let token = result.token;
+  let balance = account.balance;
+  if (p.targetBalance != null) {
+    const txns = await provider.fetchTransactions({
+      token: result.token,
+      accountId: account.accountId,
+    });
+    const sum = txns.reduce((acc, t) => acc + t.amount, 0);
+    const opening = round(p.targetBalance - sum);
+    token = `${result.token}~open=${opening}`;
+    balance = p.targetBalance;
+  }
+
   const connection = await prisma.bankConnection.create({
     data: {
       userId: user.id,
@@ -40,16 +75,14 @@ async function main() {
       accountId: account.accountId,
       mask: account.mask,
       currency: account.currency,
-      balance: account.balance,
-      encryptedToken: encryptToken(result.token),
+      balance,
+      encryptedToken: encryptToken(token),
     },
   });
   const sync = await syncConnection(connection.id);
-  console.log(
-    `   • Connected ${account.institutionName} (${account.mask}) — imported ${sync.imported} transactions`
-  );
+  console.log(`   • Imported ${sync.imported} transactions · balance ≈ ${sync.balance} €`);
 
-  // Pre-fill a few suggested budgets so the Budgets screen isn't empty.
+  // Pre-fill suggested budgets so the Budgets screen isn't empty.
   const suggestions = (await suggestBudgets(user.id)).slice(0, 4);
   for (const s of suggestions) {
     await prisma.budget.upsert({
@@ -60,12 +93,7 @@ async function main() {
   }
   console.log(`   • Created ${suggestions.length} starter budgets`);
 
-  // A couple of upcoming plans so the Calendar tab isn't empty.
-  const inDays = (n: number) => {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() + n);
-    return d;
-  };
+  // A few plans: two upcoming + one past plan we auto-reconcile from real spend.
   await prisma.plannedEvent.createMany({
     data: [
       {
@@ -84,13 +112,43 @@ async function main() {
         estimatedAmount: 45,
         status: "planned",
       },
+      {
+        userId: user.id,
+        title: "Cena del finde pasado",
+        type: "dinner",
+        date: inDays(-4),
+        estimatedAmount: 35,
+        status: "planned",
+      },
     ],
   });
-  console.log("   • Created 2 upcoming plans");
+  const reconciled = await reconcilePlans(user.id);
+  console.log(`   • Created 3 plans (${reconciled} auto-reconciled)`);
+}
 
-  console.log("\n✅ Done. Log in with:");
-  console.log(`   email:    ${DEMO_EMAIL}`);
-  console.log(`   password: ${DEMO_PASSWORD}\n`);
+async function main() {
+  console.log("🌱 Seeding Pace demo data…");
+
+  // Alex: a student living tight (random student-like balance, often low/red).
+  await seedUser({
+    email: "demo@pace.app",
+    displayName: "Alex",
+    locale: "es",
+    safetyBuffer: 100,
+  });
+
+  // Cristina: a healthier profile with ~2000 € in the account.
+  await seedUser({
+    email: "cristina@pace.app",
+    displayName: "Cristina",
+    locale: "es",
+    safetyBuffer: 200,
+    targetBalance: 2000,
+  });
+
+  console.log("\n✅ Done. Log in with password '" + DEMO_PASSWORD + "':");
+  console.log("   • demo@pace.app      (Alex)");
+  console.log("   • cristina@pace.app  (Cristina, ~2000 €)\n");
 }
 
 main()

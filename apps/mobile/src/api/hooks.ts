@@ -101,6 +101,10 @@ export function useDecision() {
   return useMutation({ mutationFn: (amount: number) => DecisionApi.evaluate(amount) });
 }
 
+export function useAsk() {
+  return useMutation({ mutationFn: (text: string) => DecisionApi.ask(text) });
+}
+
 /* -------------------------------- Plans ---------------------------------- */
 
 export function usePlans(upcomingOnly = false) {

@@ -1,5 +1,6 @@
 import type { CategoryId } from "./categories";
 import type { PlanType, PlanStatus } from "./plans";
+import type { ParsedSpend } from "./parse";
 
 /** Supported Open Banking providers behind the abstraction layer. */
 export type BankProviderId = "mock" | "tink" | "plaid";
@@ -80,6 +81,8 @@ export interface PlannedEvent {
   /** What they actually spent, once marked as done (drives learning). */
   actualAmount: number | null;
   status: PlanStatus;
+  /** Transaction that fulfilled this plan, once auto-reconciled (or null). */
+  matchedTxId: string | null;
   createdAt: string;
 }
 
@@ -137,7 +140,34 @@ export interface DecisionResult {
   dailyAllowanceAfter?: number;
 }
 
+/** ----- Conversational "Can I?" ----- */
+
+export interface SpendQueryResult {
+  /** What we understood from the free text. */
+  parsed: ParsedSpend;
+  /** Full decision, or null when no amount could be read. */
+  decision: DecisionResult | null;
+  /** Resolved category for the spend. */
+  category: CategoryId;
+  /** Already spent in that category this month. */
+  spentThisMonth: number;
+  /** Budget limit for that category, if one is set. */
+  budgetLimit: number | null;
+  /** Budget left for that category this month (limit − spent), if budgeted. */
+  budgetRemaining: number | null;
+}
+
 /** ----- Dashboard aggregate ----- */
+
+export interface CategorySpend {
+  category: CategoryId;
+  /** Total spent in this category this month (positive magnitude). */
+  spent: number;
+  /** Budget limit for the category, if one is set. */
+  budgetLimit: number | null;
+  /** spent ÷ total month spend, in 0..1 (for the relative bar). */
+  share: number;
+}
 
 export interface DashboardSummary {
   currency: string;
@@ -155,6 +185,8 @@ export interface DashboardSummary {
   recentTransactions: Transaction[];
   /** Daily spend totals for the current week (Mon→Sun) for the mini chart. */
   weeklySpend: { date: string; amount: number }[];
+  /** This month's spend grouped by category, sorted high→low. */
+  categoryBreakdown: CategorySpend[];
 }
 
 /** ----- Auth ----- */

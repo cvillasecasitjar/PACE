@@ -54,6 +54,7 @@ export function AddPlanModal({
   const [range, setRange] = useState<DateRange>({ start: isoDay(0), end: null });
   const [amount, setAmount] = useState("");
   const [amountTouched, setAmountTouched] = useState(false);
+  const [actual, setActual] = useState("");
 
   // Reset the form whenever the modal opens (fresh create, or load a plan to edit).
   useEffect(() => {
@@ -64,6 +65,7 @@ export function AddPlanModal({
       setRange({ start: plan.date.slice(0, 10), end: plan.endDate?.slice(0, 10) ?? null });
       setAmount(String(plan.estimatedAmount));
       setAmountTouched(true);
+      setActual(String(plan.actualAmount ?? plan.estimatedAmount));
     } else {
       setType("dinner");
       setTitle("");
@@ -132,6 +134,27 @@ export function AddPlanModal({
       await deletePlan.mutateAsync(plan.id);
       onClose();
     }
+  }
+
+  const isDone = plan?.status === "done";
+  const parsedActual = parseFloat(actual.replace(",", ".")) || 0;
+
+  async function markDone() {
+    if (!plan) return;
+    await updatePlan.mutateAsync({
+      id: plan.id,
+      patch: { status: "done", actualAmount: parsedActual || plan.estimatedAmount },
+    });
+    onClose();
+  }
+
+  async function reopen() {
+    if (!plan) return;
+    await updatePlan.mutateAsync({
+      id: plan.id,
+      patch: { status: "planned", actualAmount: null },
+    });
+    onClose();
   }
 
   return (
@@ -289,6 +312,74 @@ export function AddPlanModal({
               disabled={!canSave}
               style={{ marginTop: t.spacing(2) }}
             />
+
+            {isEditing && plan ? (
+              <View
+                style={{
+                  marginTop: t.spacing(4),
+                  paddingTop: t.spacing(4),
+                  borderTopWidth: 1,
+                  borderTopColor: t.colors.border,
+                }}
+              >
+                {isDone ? (
+                  <>
+                    <Text
+                      style={{
+                        color: t.colors.green,
+                        fontSize: 14,
+                        fontWeight: "700",
+                        marginBottom: t.spacing(1),
+                      }}
+                    >
+                      {tr("plan.doneBadge")} · {currencySymbol(currency)}
+                      {plan.actualAmount ?? plan.estimatedAmount}
+                    </Text>
+                    <Text
+                      style={{
+                        color: t.colors.textFaint,
+                        fontSize: 12,
+                        marginBottom: t.spacing(3),
+                      }}
+                    >
+                      {tr("plan.doneHint")}
+                    </Text>
+                    <Button
+                      label={tr("plan.reopen")}
+                      onPress={reopen}
+                      variant="secondary"
+                      loading={updatePlan.isPending}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Text style={labelStyle(t)}>{tr("plan.markDoneTitle")}</Text>
+                    <Text
+                      style={{
+                        color: t.colors.textFaint,
+                        fontSize: 12,
+                        marginBottom: t.spacing(2),
+                      }}
+                    >
+                      {tr("plan.markDoneHint")}
+                    </Text>
+                    <Input
+                      label={`${tr("plan.actualAmount")} (${currencySymbol(currency)})`}
+                      value={actual}
+                      onChangeText={setActual}
+                      keyboardType="decimal-pad"
+                      placeholder="0"
+                    />
+                    <Button
+                      label={tr("plan.markDoneBtn")}
+                      onPress={markDone}
+                      variant="secondary"
+                      loading={updatePlan.isPending}
+                    />
+                  </>
+                )}
+              </View>
+            ) : null}
 
             {isEditing ? (
               <Button

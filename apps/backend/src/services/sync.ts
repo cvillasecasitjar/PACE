@@ -7,6 +7,7 @@ import {
   getUserRules,
 } from "./categorization";
 import { detectAndFlagRecurring } from "./finance";
+import { reconcilePlans } from "./plans";
 
 export interface SyncResult {
   connectionId: string;
@@ -86,6 +87,10 @@ export async function syncConnection(connectionId: string): Promise<SyncResult> 
   });
 
   await detectAndFlagRecurring(connection.userId);
+
+  // Turn planned events into "done" when their real payment shows up, so the
+  // estimate engine learns from actual spend.
+  await reconcilePlans(connection.userId);
 
   await prisma.auditLog.create({
     data: {

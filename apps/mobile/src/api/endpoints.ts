@@ -10,6 +10,7 @@ import type {
   PlanStatus,
   PlanSuggestion,
   PlanType,
+  SpendQueryResult,
   Transaction,
   User,
 } from "@pace/shared";
@@ -115,6 +116,10 @@ export const BudgetsApi = {
 export const DecisionApi = {
   async evaluate(amount: number): Promise<DecisionResult> {
     const { data } = await api.post<DecisionResult>("/decision", { amount });
+    return data;
+  },
+  async ask(text: string): Promise<SpendQueryResult> {
+    const { data } = await api.post<SpendQueryResult>("/decision/ask", { text });
     return data;
   },
 };

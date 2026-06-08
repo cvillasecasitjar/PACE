@@ -71,6 +71,8 @@ describe("Bank connection → dashboard → decision flow", () => {
     expect(["green", "yellow", "red"]).toContain(res.body.status);
     expect(res.body.weeklySpend).toHaveLength(7);
     expect(typeof res.body.plannedThisMonth).toBe("number");
+    expect(Array.isArray(res.body.categoryBreakdown)).toBe(true);
+    expect(res.body.categoryBreakdown.length).toBeGreaterThan(0);
   });
 
   it("answers the decision engine with a personalised verdict", async () => {
